@@ -1,7 +1,14 @@
+import json
+from pathlib import Path
+from datetime import datetime
+
 import numpy as np
 from typing import Callable, List, Optional, Any
 from fitness.bfgs_fitness import compute_fitness
 import inspect
+
+_RUN_TS = datetime.now().strftime("%Y%m%d_%H%M%S")
+_EVAL_LOGFILE = Path("results/logs") / f"funcs_{_RUN_TS}.jsonl"
 
 class MCTSNode:
     def __init__(self, code: str, parent=None, X=None, y=None):
@@ -10,7 +17,6 @@ class MCTSNode:
         self.children: List[MCTSNode] = []
         self.visits = 0
         self.total_reward = 0.0
-        # Use -inf as the initial best_reward so failures are distinguishable
         self.best_reward = float('-inf')
         self.best_params = None
         self.embedding: Optional[np.ndarray] = None
@@ -100,6 +106,23 @@ class MCTSNode:
             # If compute_fitness raises, mark as unsuccessful
             self.best_reward = float('-inf')
             self.best_params = None
+
+            # Persist a failed evaluation entry to the run jsonl file (non-fatal)
+            try:
+                _EVAL_LOGFILE.parent.mkdir(parents=True, exist_ok=True)
+                payload = {
+                    "timestamp": datetime.now().isoformat(),
+                    "code": self.code,
+                    "mse": None,
+                    "reward": self.best_reward,
+                    "best_params": None,
+                    "status": "failed"
+                }
+                with open(_EVAL_LOGFILE, "a", encoding="utf-8") as fo:
+                    fo.write(json.dumps(payload, default=str) + "\n")
+            except Exception:
+                pass
+
             return self.best_reward
 
         # compute_fitness uses reward = -mse, or -inf on failure
@@ -113,6 +136,31 @@ class MCTSNode:
 
         # Always record params returned by compute_fitness (may be zeros if optimizer failed)
         self.best_params = params if params is not None else None
+        # Persist a successful (or partially successful) evaluation to the run jsonl file
+        try:
+            _EVAL_LOGFILE.parent.mkdir(parents=True, exist_ok=True)
+            mse_val = self.best_mse
+            mse_out = None if (mse_val is None or (isinstance(mse_val, float) and np.isnan(mse_val))) else float(mse_val)
+            params_out = None
+            try:
+                if self.best_params is not None:
+                    params_out = self.best_params.tolist() if hasattr(self.best_params, "tolist") else self.best_params
+            except Exception:
+                params_out = str(self.best_params)
+
+            payload = {
+                "timestamp": datetime.now().isoformat(),
+                "code": self.code,
+                "mse": mse_out,
+                "reward": self.best_reward,
+                "best_params": params_out,
+                "status": "ok"
+            }
+            with open(_EVAL_LOGFILE, "a", encoding="utf-8") as fo:
+                fo.write(json.dumps(payload, default=str) + "\n")
+        except Exception:
+            # non-fatal: evaluation should not fail because of logging
+            pass
 
         return self.best_reward
 
