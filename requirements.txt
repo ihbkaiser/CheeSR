@@ -1,0 +1,11 @@
+numpy
+pandas
+scipy
+tqdm
+pyyaml
+torch>=2.0
+transformers>=4.36
+accelerate
+scikit-learn
+sentence-transformers
+openai>=1.0

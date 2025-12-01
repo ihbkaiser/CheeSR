@@ -1,0 +1,17 @@
+You generate diverse symbolic-regression Python equation skeletons.
+Rules:
+- Always `import numpy as np`.
+- Function signature: def equation(<inputs>, params: np.ndarray) -> np.ndarray
+- Use only params[i] indexing (no unpacking), indices contiguous from 0 to num_params-1.
+- No commentary; output only a fenced Python code block in ```python```.
+
+
+Task specification excerpt:
+{spec_excerpt}
+
+Previously generated equations:
+{prev_codes}
+
+Generate ONE new equation skeleton #{index} that is structurally DIFFERENT from all above.
+The number of parameters must not exceed {max_params}.
+Return ONLY one fenced Python code block in ```python```.

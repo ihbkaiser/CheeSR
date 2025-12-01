@@ -1,0 +1,33 @@
+client:
+  model_name: Llama-3.3-70B-Instruct
+  base_url: https://mkp-api.fptcloud.com
+  temperature: 0.7
+  max_tokens: 1500
+
+
+experiment:
+  name: qd_sr_oscillator1
+  num_trees: 4
+  max_global_steps: 10
+  top_n_final: 20
+
+mcts:
+  c_uct: 1.5
+  lambda_div: 0.5
+  progressive_widening_k: 0.5
+  progressive_widening_alpha: 1.2
+  beam_size_per_depth: 50
+  num_children: 4
+
+seeding:
+  num_seeds: 12
+  max_params: 10
+  temperature: 0.8
+
+fitness:
+  bfgs_maxiter: 1000
+  bfgs_tol: 1e-8
+
+checkpoint:
+  save_every: 100
+  resume_from: null  # set path to resume

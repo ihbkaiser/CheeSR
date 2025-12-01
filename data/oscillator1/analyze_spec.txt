@@ -1,0 +1,5 @@
+Your task is to find the mathematical function skeleton that represents acceleration in a damped nonlinear oscillator system with driving force, given data on position, and velocity. 
+Args:
+    x: A numpy array representing observations of current position.
+    v: A numpy array representing observations of velocity.
+    params: Array of numeric constants or parameters to be optimized.

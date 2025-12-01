@@ -1,0 +1,48 @@
+{
+  "dataset": "bactgrow",
+  "config": {
+    "features": [
+      "b",
+      "s",
+      "temp",
+      "pH"
+    ],
+    "target": "db",
+    "description": "Bacterial growth rate"
+  },
+  "best_function_info": {
+    "score": -0.002061914961892889,
+    "function_code": "def equation(b: np.ndarray, s: np.ndarray, temp: np.ndarray, pH: np.ndarray, params: np.ndarray) -> np.ndarray:\n    \"\"\" Mathematical function for bacterial growth rate\n\n    Args:\n        b: A numpy array representing observations of population density of the bacterial species.\n        s: A numpy array representing observations of substrate concentration.\n        temp: A numpy array representing observations of temperature.\n        pH: A numpy array representing observations of pH level.\n        params: Array of numeric constants or parameters to be optimized\n\n    Return:\n        A numpy array representing bacterial growth rate as the result of applying the mathematical function to the inputs.\n    \"\"\"\n    \"\"\"Improved version of `equation_v1`, incorporating inhibition effects.\"\"\"\n\n    # Maximum specific growth rate\n    mu_max = params[0]  # Maximum specific growth rate\n    \n    # Half-saturation constant for substrate concentration\n    Ks = params[1]  # Half-saturation constant\n\n    # Population density inhibition term (using a logistic growth behavior)\n    Kb = params[2]  # Carrying capacity or some limit on population density\n    \n    # Temperature effect (assuming a bell-shaped response)\n    temp_optimal = 37.0  # Assuming 37 \u00b0C is around optimal for E. Coli\n    temp_buffer = params[3]  # Parameter to control the width of the temperature response\n    temp_effect = np.exp(-((temp - temp_optimal) ** 2) / (2 * (temp_buffer ** 2)))\n\n    # pH effect, modeled with a Gaussian response\n    pH_optimal = 7.0  # Assuming neutral pH is optimal\n    pH_buffer = params[4]  # Parameter controlling the width of the pH response\n    pH_effect = np.exp(-((pH - pH_optimal) ** 2) / (2 * (pH_buffer ** 2)))\n\n    # Incorporating Monod model and inhibition effects\n    growth_rate = (mu_max * (s / (Ks + s))) * (b / (Kb + b)) * temp_effect * pH_effect\n\n    return growth_rate\n\n",
+    "sample_order": 255,
+    "file": "logs/bactgrow_gpt4omini/samples/samples_255.json",
+    "all_functions": 312
+  },
+  "results": {
+    "test_id": {
+      "bfgs": {
+        "nmse": 0.7471264004707336,
+        "params": "[1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]",
+        "train_loss": "0.013668191",
+        "success": true,
+        "method": "BFGS"
+      }
+    },
+    "test_ood": {
+      "bfgs": {
+        "nmse": 0.8283275365829468,
+        "params": "[1. 1. 1. 1. 1. 1. 1. 1. 1. 1.]",
+        "train_loss": "0.013668191",
+        "success": true,
+        "method": "BFGS"
+      }
+    }
+  },
+  "args": {
+    "log_dir": "logs/bactgrow_gpt4omini",
+    "data_dir": "data/bactgrow",
+    "method": "bfgs",
+    "max_params": 10,
+    "epochs": 1000,
+    "lr": 0.01
+  }
+}
