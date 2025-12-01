@@ -2,6 +2,7 @@ from utils.data_loader import load_dataset
 from expansion.analysis_code_generator import generate_analysis_code
 from expansion.execute_analysis import safe_execute_analysis
 from openai import OpenAI
+from utils.client import CheeSRClient
 import numpy as np
 
 # ==============================================================
@@ -41,10 +42,7 @@ y_pred = model_func(X, best_params)
 # ==============================================================
 # 5. OpenAI client — CORRECTED URL
 # ==============================================================
-client = OpenAI(
-    base_url="https://mkp-api.fptcloud.com",   # ← MUST include /v1
-    api_key="sk-7Dam0x7XBNhZTA8GlWw2dA"
-)
+client = CheeSRClient()
 
 # ==============================================================
 # 6. Generate analysis code with TWO-TASK prompt
