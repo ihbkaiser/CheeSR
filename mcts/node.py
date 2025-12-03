@@ -24,6 +24,8 @@ class MCTSNode:
         self.X = X
         self.y = y
         self._compiled_func = None
+        # Optional natural-language rationale captured when the node is generated
+        self.thought: Optional[str] = None
 
     def compile_func(self) -> Callable:
 

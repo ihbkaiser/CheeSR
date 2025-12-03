@@ -1,4 +1,4 @@
-You generate diverse symbolic-regression Python equation skeletons.
+You generate diverse symbolic-regression Python equation skeletons. Diversity should be by mathematical concept (e.g., different operator families, nonlinearities, interactions).
 Rules:
 - Always `import numpy as np`.
 - Function signature: def equation(<inputs>, params: np.ndarray) -> np.ndarray
@@ -10,7 +10,7 @@ Task specification excerpt:
 {spec_excerpt}
 
 Previously generated equations:
-{prev_codes}
+{previous_codes}
 
 Generate ONE new equation skeleton #{index} that is structurally DIFFERENT from all above.
 The number of parameters must not exceed {max_params}.

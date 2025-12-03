@@ -36,7 +36,7 @@ def safe_execute_analysis(
 
     try:
         result = subprocess.run(
-            ["docker", "run", "--rm", "-i", "--network=none", "--memory=512m", "llm-analyzer"],
+            ["docker", "run", "--rm", "-i", "--network=none", "llm-analyzer"],
             input=payload_bytes,        # bytes, not str
             capture_output=True,
             timeout=30,
@@ -45,9 +45,8 @@ def safe_execute_analysis(
         return result.stdout.decode('utf-8').strip()
 
     except subprocess.CalledProcessError as e:
-        error_msg = e.stderr.decode('utf-8') if e.stderr else "Unknown Docker error"
-        return f"Docker execution failed:\n{error_msg}"
+        raise e
     except subprocess.TimeoutExpired:
         return "Analysis timed out after 30 seconds"
     except Exception as e:
-        return f"Unexpected error: {e}"
+        raise e

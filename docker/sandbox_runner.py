@@ -21,12 +21,19 @@ try:
         "params": best_params,
     }
 
-    # Full safe globals (print, imports, everything works)
-    exec(code, {"__builtins__": __builtins__}, local_env)
+    globals_env = {
+        "__builtins__": __builtins__,
+        "np": np,
+    }
 
-    if "analyze" in local_env:
-        local_env["analyze"](X=X, y_true=y_true, y_pred=y_pred, best_params=best_params)
+    # Full safe globals (print, imports, everything works)
+    exec(code, globals_env, local_env)
+
+    analyze_fn = local_env.get("analyze") or globals_env.get("analyze")
+
+    if analyze_fn:
+        analyze_fn(X=X, y_true=y_true, y_pred=y_pred, best_params=best_params)
 
 except Exception as e:
-    print("ANALYSIS CRASHED:")
+    raise e
     traceback.print_exc()

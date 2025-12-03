@@ -18,7 +18,7 @@ from mcts.node import MCTSNode
 from mcts.forest import QDSymbolicForest, MCTSTree
 from mcts.uct_qd import QDUCT
 from utils.checkpoint import save_checkpoint, load_checkpoint
-from utils.logger import setup_logger
+from utils.logger import setup_logger, get_logger
 from utils.read_spec import read_spec
 from utils.client import CheeSRClient
 import warnings
@@ -31,6 +31,7 @@ load_dotenv()  # Load environment variables from .env file
 def main():
     cfg = yaml.safe_load(open("config.yaml"))
     setup_logger()
+    logger = get_logger("QD-SR")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Suppress warnings (user requested to ignore all warnings)
     warnings.filterwarnings("ignore")
@@ -50,6 +51,7 @@ def main():
 
     # Seeding
     seed_gen = SeedGenerator(client, input_names)
+    logger.info("Generating initial seeds...")
     seeds = seed_gen.generate_seeds(
         num_seeds=cfg['experiment']['num_trees'],
         max_params=cfg['seeding']['max_params'],
@@ -63,14 +65,14 @@ def main():
         node.evaluate()
         roots.append(node)
     # Thêm sau khi tạo roots
-    print("Warming up fitness evaluation...")
+    logger.info("Warming up fitness evaluation...")
     for root in roots[:3]:
         try:
             mse = root.best_mse
         except Exception:
             mse = float('nan')
-        print(f"Warm-up best_reward: {root.best_reward} | best_mse: {mse}")
-    trees = [MCTSTree(root) for root in roots]
+        logger.info(f"Warm-up best_reward: {root.best_reward} | best_mse: {mse}")
+    trees = [MCTSTree(root, tree_id=i) for i, root in enumerate(roots)]
     for tree in trees:
         tree.update_anchor()
 
@@ -79,18 +81,23 @@ def main():
     anchor_embs = [embedder.embed(t.anchor.code) for t in trees]
     uct = QDUCT(cfg['mcts']['c_uct'], cfg['mcts']['lambda_div'], anchor_embs, embedder)
 
-    forest = QDSymbolicForest(trees, uct, cfg['mcts']['beam_size_per_depth'])
+    forest = QDSymbolicForest(
+        trees,
+        uct,
+        cfg['mcts']['beam_size_per_depth'],
+        traj_window=cfg['mcts'].get('trajectory_window', 5),
+    )
 
     # Resume?
     if cfg['checkpoint']['resume_from']:
         load_checkpoint(forest, cfg['checkpoint']['resume_from'])
 
     # Main loop
-    print("Starting main MCTS-QD loop...")
-    print(f"Number of iterations: {cfg['experiment']['max_global_steps']}")
-    print(forest.global_step)
+    logger.info("Starting main MCTS-QD loop...")
+    logger.info(f"Number of iterations: {cfg['experiment']['max_global_steps']}")
+    logger.info(f"Starting global_step: {forest.global_step}")
     while forest.global_step < cfg['experiment']['max_global_steps']:
-        print(f"Step {forest.global_step}")
+        logger.info(f"Step {forest.global_step}")
         forest.global_step += 1
         tree = forest.select_tree()
         leaf = forest.select_node(tree)
@@ -111,6 +118,7 @@ def main():
                     max_params=max_params,
                     spec_file_path=spec_dir,
                     retry=3,
+                    tree_id=tree.tree_id,
                 )
 
                 # Backpropagate only the newly-created child (if any)
@@ -122,19 +130,21 @@ def main():
                     raise RuntimeError("No children were created during expansion.")
             else:
                 reward = leaf.evaluate()
+                forest._register_hof_candidate(leaf, tree.tree_id)
                 forest.backpropagate(leaf, reward)
         except Exception as e:
-            print(f"Expansion/evaluation failed: {e}. Falling back to evaluate leaf.")
+            logger.error(f"Expansion/evaluation failed: {e}. Falling back to evaluate leaf.")
             reward = leaf.evaluate()
+            forest._register_hof_candidate(leaf, tree.tree_id)
             forest.backpropagate(leaf, reward)
 
-        tree.update_anchor()
+        forest.update_tree_anchor(tree)
 
         if forest.global_step % 50 == 0:
             best_reward = max(t.best_reward for t in trees)
             # best_mse of the best anchor across trees
             best_mse = min((t.anchor.best_mse for t in trees), default=float('nan'))
-            print(f"Step {forest.global_step} | Best reward: {best_reward} | Best mse: {best_mse}")
+            logger.info(f"Step {forest.global_step} | Best reward: {best_reward} | Best mse: {best_mse}")
 
         if forest.global_step % cfg['checkpoint']['save_every'] == 0:
             save_checkpoint(forest, f"checkpoints/step_{forest.global_step}.pkl")
@@ -151,8 +161,8 @@ def main():
     all_nodes.sort(key=lambda n: n.best_reward, reverse=True)
     top_n = all_nodes[:cfg['experiment']['top_n_final']]
     for i, node in enumerate(top_n):
-        print(f"\n#{i+1} Reward: {node.best_reward} | MSE: {node.best_mse}")
-        print(node.code)
+        logger.info(f"Top {i+1}: Reward: {node.best_reward} | MSE: {node.best_mse}")
+        logger.info(node.code)
 
 if __name__ == "__main__":
     main()

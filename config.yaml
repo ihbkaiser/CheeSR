@@ -1,5 +1,5 @@
 client:
-  model_name: Llama-3.3-70B-Instruct
+  model_name: Qwen3-Coder-480B-A35B-Instruct
   base_url: https://mkp-api.fptcloud.com
   temperature: 0.7
   max_tokens: 1500
@@ -13,11 +13,12 @@ experiment:
 
 mcts:
   c_uct: 1.5
-  lambda_div: 0.5
+  lambda_div: 0.0
   progressive_widening_k: 0.5
   progressive_widening_alpha: 1.2
   beam_size_per_depth: 50
   num_children: 4
+  trajectory_window: 5
 
 seeding:
   num_seeds: 12
